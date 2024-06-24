@@ -1,0 +1,434 @@
+-- combinning data 
+
+select count(distinct(ride_id))
+from [master].[dbo].[202201-divvy-tripdata]
+where start_station_name is not null  
+
+-- Data Exploration including calculating No of trips and standerdizing columns entries 
+
+select 
+count(rideable_type) as total_member_rides
+from [master].[dbo].[202201-divvy-tripdata]
+-- where member_casual = 'member'
+
+-- standerdize the unique id length for every rider
+
+select len(ride_id)
+from [master].[dbo].[202201-divvy-tripdata]
+group by ride_id 
+having len(ride_id) > 16
+
+
+-- cleaning data and deleting nulls 
+
+delete from [master].[dbo].[202201-divvy-tripdata]
+where start_station_name is NULL
+
+
+-- Breaking out started_at and ended_at into individual columns and distribute them in new different columns
+
+select 
+top 1000(started_at),
+SUBSTRING(started_at, 1, CHARINDEX(' ', started_at)),
+SUBSTRING(started_at, CHARINDEX(' ', started_at), len(started_at))
+from [master].[dbo].[202201-divvy-tripdata]
+order by started_at desc 
+
+
+alter table [master].[dbo].[202201-divvy-tripdata]
+ADD started_date_at nvarchar(50)
+
+UPDATE [master].[dbo].[202201-divvy-tripdata]
+set started_date_at = SUBSTRING(started_at, 1, CHARINDEX(' ', started_at))
+
+
+alter table [master].[dbo].[202201-divvy-tripdata]
+ADD started_time_at FLOAT
+
+update [master].[dbo].[202201-divvy-tripdata]
+set started_time_at = SUBSTRING(started_at, CHARINDEX(' ', started_at), len(started_at))
+
+select top 1000 (started_time)
+from [master].[dbo].[202201-divvy-tripdata]
+
+
+alter table [master].[dbo].[202201-divvy-tripdata]
+ADD ended_date_at nvarchar(50)
+
+UPDATE [master].[dbo].[202201-divvy-tripdata]
+set ended_date_at = SUBSTRING(ended_at, 1, CHARINDEX(' ', ended_at))
+
+
+alter table [master].[dbo].[202201-divvy-tripdata]
+ADD ended_time_at FLOAT 
+
+update [master].[dbo].[202201-divvy-tripdata]
+set ended_time_at = SUBSTRING(ended_at, CHARINDEX(' ', ended_at), len(ended_at))
+
+
+alter table [master].[dbo].[202201-divvy-tripdata]
+drop column started_at
+
+
+select top 10 *
+from [master].[dbo].[202201-divvy-tripdata]
+
+
+-- calculating the trip duration 
+
+select 
+rideable_type,
+member_casual,
+started_time_at,
+ended_time_at,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'member'
+order by  trip_duration desc
+
+
+-- checking for duplicate entries
+
+SELECT 
+ride_id, 
+count(ride_id)
+FROM [master].[dbo].[202201-divvy-tripdata]
+GROUP BY ride_id
+HAVING COUNT(ride_id) > 1
+
+
+
+
+-- Used row_number() to find duplicate records and iresulted with 26 records that have the same data
+
+with Row_number_CTE as (
+select *,
+ROW_NUMBER() over (
+    partition BY rideable_type, 
+                start_station_name,
+                end_station_name,
+                member_casual,
+                started_date_at,
+                started_time_at,
+                ended_date_at,
+                ended_time_at
+                order by ride_id 
+            ) as row_num
+
+from [master].[dbo].[202201-divvy-tripdata]
+
+)
+select *
+from Row_number_CTE
+where row_num > 1 
+
+
+-- Extracting month from date 
+select 
+DATENAME(MONTH, DATEADD(MONTH,1, started_date_at)) as date_month,
+count(DATENAME(MONTH, DATEADD(MONTH,1, started_date_at))) as month_name
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_date_at 
+
+-- Extracting weekdays from date
+
+select 
+DATENAME(WEEKDAY, DATEADD(WEEKDAY,1, started_date_at)) month_date,
+count(DATENAME(WEEKDAY, DATEADD(WEEKDAY,1, started_date_at))) as day_of_week
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_date_at 
+order by day_of_week DESC
+
+
+
+
+-- Avg ride length from dataset using CTE 
+
+With avg_ride_length as (
+
+select 
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+Round(avg(cast(trip_duration as FLOAT)),2) as avg_trip_duration,
+MIN(trip_duration) as min_trip_duration,
+MAX(trip_duration) as max_trip_duration
+from avg_ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+order by avg_trip_duration desc
+
+
+-- Using CTE to find the daily avg trip duration for members
+
+With ride_length as (
+
+select 
+DATENAME(WEEKDAY, DATEADD(WEEKDAY,1, started_date_at)) day_of_week,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'member'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+day_of_week,
+Round(avg(cast(trip_duration as FLOAT)),2) as avg_trip_duration,
+MIN(trip_duration) as min_trip_duration,
+MAX(trip_duration) as max_trip_duration
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by day_of_week
+order by avg_trip_duration desc
+
+
+-- getting daily avg trip duration for Casual riders
+
+
+With ride_length as (
+
+select 
+DATENAME(WEEKDAY, DATEADD(WEEKDAY,1, started_date_at)) day_of_week,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'casual'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+day_of_week,
+Round(avg(cast(trip_duration as FLOAT)),2) as avg_trip_duration,
+MIN(trip_duration) as min_trip_duration,
+MAX(trip_duration) as max_trip_duration
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by day_of_week
+order by day_of_week desc
+
+
+-- monthly avg trip duration of member riders 
+
+With ride_length as (
+
+select 
+DATENAME(MONTH, DATEADD(MONTH,1, started_date_at)) as date_month,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'member'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+date_month,
+Round(avg(cast(trip_duration as FLOAT)),2) as avg_trip_duration,
+MIN(trip_duration) as min_trip_duration,
+MAX(trip_duration) as max_trip_duration
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by date_month
+order by avg_trip_duration desc
+
+
+
+
+-- monthly avg trip duration of member riders 
+
+With ride_length as (
+
+select 
+DATENAME(MONTH, DATEADD(MONTH,1, started_date_at)) as date_month,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'casual'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+date_month,
+Round(avg(cast(trip_duration as FLOAT)),2) as avg_trip_duration,
+MIN(trip_duration) as min_trip_duration,
+MAX(trip_duration) as max_trip_duration
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by date_month
+order by avg_trip_duration desc
+
+
+
+
+
+-- Rides count on weekdays member_casual
+
+With ride_length as (
+
+select 
+DATENAME(WEEKDAY, DATEADD(WEEKDAY,1, started_date_at)) day_of_week,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'casual'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+day_of_week,
+count(*) as daily_ride_count_member
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by day_of_week
+order by daily_ride_count_member DESC
+
+
+
+
+-- Monthly ride counts member_casual
+
+
+With ride_length as (
+
+select 
+DATENAME(MONTH, DATEADD(MONTH,1, started_date_at)) as date_month,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+where member_casual = 'member'
+group by started_time_at, ended_time_at, started_date_at
+
+)
+
+select 
+date_month,
+count(*) as monthly_ride_count
+from ride_length 
+where trip_duration > 0 and trip_duration < 1440 
+group by date_month
+order by monthly_ride_count DESC
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- calculate total ride count member_casual 
+
+
+With Ride_count_CTE as (
+
+select 
+member_casual,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_time_at, ended_time_at, started_date_at, member_casual
+
+)
+
+select 
+count(*) as num_of_rides
+from Ride_count_CTE 
+where trip_duration > 0 and trip_duration < 1440 
+order by num_of_rides DESC
+
+
+
+-- Calculating total rides based on hours 
+
+
+With hour_count_CTE as (
+
+select 
+DATENAME(weekday, DATEADD(weekday,1, started_date_at)) as day_of_week,
+DATENAME(month, DATEADD(month,1, started_date_at)) as date_month,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration, 
+DATENAME(hour, DATEADD(hour,1, started_time_at)) as hour_,
+count(DATENAME(hour, DATEADD(hour,1, started_time_at))) as hour_count
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_time_at, ended_time_at,  started_date_at
+
+)
+
+select 
+day_of_week,
+hour_,
+CASE when hour_ = 18 then 17
+when hour_ = 19 then 18 
+when hour_ = 20 then 19 
+when hour_ = 21 then 20 
+when hour_ = 22 then 21
+when hour_ = 23 then 22
+when hour_ = 17 then 16 
+when hour_ = 16 then 15 
+when hour_ = 15 then 14 
+when hour_ = 14 then 13 
+when hour_ = 13 then 12 
+when hour_ = 12 then 11 
+when hour_ = 11 then 10 
+when hour_ = 10 then 9 
+when hour_ = 9 then 8 
+when hour_ = 8 then 7
+WHEN hour_ = 7 then 6 
+when hour_ = 6 then 5 
+when hour_ = 5 then 4 
+when hour_ = 4 then 3 
+when hour_ = 3 then 2
+when hour_ = 2 then 1 
+when hour_ = 0 then 23
+when hour_ = 1 then 00
+else hour_
+end as sub_hour_,
+count(*) as total_rides
+from hour_count_CTE 
+where trip_duration > 0 and trip_duration < 1440 
+group by hour_, day_of_week
+order by total_rides DESC
+
+
+
+
+
+-- total rides based on bike type 
+
+
+
+With Ride_count_CTE as (
+
+select 
+rideable_type,
+member_casual,
+DATEDIFF(MINUTE, started_time_at, ended_time_at) as trip_duration 
+from [master].[dbo].[202201-divvy-tripdata]
+group by started_time_at, ended_time_at, started_date_at, member_casual, rideable_type
+
+)
+
+select 
+member_casual,
+rideable_type,
+count(*) as rides_count
+from Ride_count_CTE 
+where trip_duration > 0 and trip_duration < 1440 and member_casual = 'casual'
+group by rideable_type, member_casual
+order by rides_count DESC
+
+
+select 
+start_station_name,
+start_lat,
+start_lng
+from [master].[dbo].[202201-divvy-tripdata]
+
+
