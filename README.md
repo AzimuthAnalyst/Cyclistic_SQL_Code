@@ -15,22 +15,22 @@ Data Cleaning
 To ensure data consistency and quality, the following steps were undertaken:
 Consistency Checks: 
 
-•	Ensured consistent data formatting across all files. 
-•	Renamed columns for better clarity and uniformity. 
-•	Split date columns into separate components (e.g., day, month, year). 
-•	Filtered out records with null values in start and end station columns. Duplicate Identified and removed duplicate records.
-•	Removed columns that were not relevant to the analysis. 
-•	Ensured that all data cleaning steps were performed while keeping the original data intact.
+- Ensured consistent data formatting across all files. 
+- Renamed columns for better clarity and uniformity. 
+- Split date columns into separate components (e.g., day, month, year). 
+- Filtered out records with null values in start and end station columns. Duplicate Identified and removed duplicate records.
+- Removed columns that were not relevant to the analysis. 
+- Ensured that all data cleaning steps were performed while keeping the original data intact.
 
 
 Data Analysis
 
 The analysis focused on understanding the riding patterns and preferences of casual and annual riders. Key aspects analyzed include:
 
-•	Bike Preferences: examined which types of bikes were preferred by casual and annual riders during weekdays and weekends. 
-•	Peak Hours: identified hot hours when rides were most frequent. 
-•	Temporal Patterns: plotted ride data across weeks and months to discern patterns and behaviors. 
-•	Geographical Analysis: analyzed the most popular start and end stations to understand which areas of Chicago are frequented by casual and annual riders for leisure and work.
+- Bike Preferences: examined which types of bikes were preferred by casual and annual riders during weekdays and weekends. 
+- Peak Hours: identified hot hours when rides were most frequent. 
+- Temporal Patterns: plotted ride data across weeks and months to discern patterns and behaviors. 
+- Geographical Analysis: analyzed the most popular start and end stations to understand which areas of Chicago are frequented by casual and annual riders for leisure and work.
 
 
 Recommendations
@@ -38,10 +38,10 @@ Recommendations
 
 Based on the analysis, the following strategies are recommended to attract casual riders to become annual members:
 
-•	Special Offers: Create special offers for annual memberships specifically targeted towards casual riders on weekends. 
-•	Incentives: Provide attractive incentives, such as exclusive access to certain routes or events, appealing particularly to casual riders. 
-•	Group Rides: Organize group rides on weekends, fostering a sense of community and encouraging casual riders to become annual members. 
-•	Showcase Benefits: Highlight membership benefits, such as free bike maintenance, discounts on accessories, and exclusive seasonal discounts for annual members.
+- Special Offers: Create special offers for annual memberships specifically targeted towards casual riders on weekends. 
+- Incentives: Provide attractive incentives, such as exclusive access to certain routes or events, appealing particularly to casual riders. 
+- Group Rides: Organize group rides on weekends, fostering a sense of community and encouraging casual riders to become annual members. 
+- Showcase Benefits: Highlight membership benefits, such as free bike maintenance, discounts on accessories, and exclusive seasonal discounts for annual members.
 
 
 Conclusion 
